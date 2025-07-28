@@ -604,6 +604,7 @@ export const frontendHTML = `<!DOCTYPE html>
             setupFormHandlers();
             loadWebhookConfig();
             populateUserPicker();
+            handleURLParameters();
         });
 
         // Tab management
@@ -951,6 +952,221 @@ export const frontendHTML = `<!DOCTYPE html>
                 errorMessage.textContent = 'Chyba při odesílání zprávy';
                 chatMessages.appendChild(errorMessage);
             }
+        }
+
+        // Handle URL parameters for direct product links
+        function handleURLParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = urlParams.get('product');
+            const tab = urlParams.get('tab');
+            
+            console.log('Handling URL parameters:', { productId, tab });
+            
+            if (tab) {
+                // Switch to specified tab
+                setTimeout(() => {
+                    console.log('Switching to tab:', tab);
+                    showTab(tab);
+                }, 500);
+            }
+            
+            if (productId) {
+                // Show product detail with longer delay to ensure data is loaded
+                setTimeout(() => {
+                    console.log('Showing product detail for ID:', productId);
+                    showProductDetail(productId);
+                }, 2000);
+            }
+        }
+
+        // Show product detail modal/section
+        async function showProductDetail(productId) {
+            console.log('showProductDetail called with ID:', productId);
+            try {
+                // First switch to products tab if not already there
+                console.log('Switching to products tab');
+                showTab('products');
+                
+                // Load product details
+                const url = API_BASE + '/products/' + productId;
+                console.log('Fetching product from:', url);
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                console.log('API response:', data);
+                
+                if (data.success) {
+                    console.log('Product loaded successfully, displaying modal');
+                    displayProductDetail(data.data);
+                } else {
+                    console.error('API returned error:', data.error);
+                    showError('Produkt nebyl nalezen: ' + (data.error?.message || ''));
+                }
+            } catch (error) {
+                console.error('Error loading product detail:', error);
+                showError('Chyba při načítání produktu: ' + error.message);
+            }
+        }
+
+        // Display product detail in a modal or section
+        function displayProductDetail(product) {
+            console.log('displayProductDetail called with product:', product);
+            
+            // Create product detail modal if it doesn't exist
+            let modal = document.getElementById('productDetailModal');
+            console.log('Existing modal found:', !!modal);
+            
+            if (!modal) {
+                console.log('Creating new modal');
+                modal = createProductDetailModal();
+                document.body.appendChild(modal);
+                console.log('Modal created and added to body');
+            }
+            
+            // Populate modal with product data
+            console.log('Populating modal with product data');
+            try {
+                modal.querySelector('.product-detail-title').textContent = product.name;
+                modal.querySelector('.product-detail-description').textContent = product.description;
+                modal.querySelector('.product-detail-price').textContent = new Intl.NumberFormat('cs-CZ').format(product.price) + ' Kč';
+                modal.querySelector('.product-detail-category').textContent = product.category;
+                modal.querySelector('.product-detail-stock').textContent = product.stock + ' ks skladem';
+                
+                if (product.image_url) {
+                    modal.querySelector('.product-detail-image').src = product.image_url;
+                    modal.querySelector('.product-detail-image').style.display = 'block';
+                } else {
+                    modal.querySelector('.product-detail-image').style.display = 'none';
+                }
+                
+                console.log('Modal populated successfully');
+            } catch (error) {
+                console.error('Error populating modal:', error);
+            }
+            
+            // Show modal
+            console.log('Showing modal');
+            modal.style.display = 'block';
+            console.log('Modal display set to block');
+        }
+
+        // Create product detail modal HTML
+        function createProductDetailModal() {
+            const modal = document.createElement('div');
+            modal.id = 'productDetailModal';
+            modal.className = 'modal';
+            
+            const modalContent = document.createElement('div');
+            modalContent.className = 'modal-content';
+            modalContent.style.maxWidth = '600px';
+            
+            const modalHeader = document.createElement('div');
+            modalHeader.className = 'modal-header';
+            modalHeader.innerHTML = '<h3>📦 Detail produktu</h3>';
+            
+            const closeSpan = document.createElement('span');
+            closeSpan.className = 'close';
+            closeSpan.innerHTML = '&times;';
+            closeSpan.onclick = () => closeModal('productDetailModal');
+            modalHeader.appendChild(closeSpan);
+            
+            const modalBody = document.createElement('div');
+            modalBody.className = 'modal-body';
+            
+            // Build content without template literals to avoid escape issues
+            const contentWrapper = document.createElement('div');
+            contentWrapper.style.display = 'flex';
+            contentWrapper.style.gap = '2rem';
+            contentWrapper.style.flexWrap = 'wrap';
+            
+            // Left side - image
+            const imageDiv = document.createElement('div');
+            imageDiv.style.flex = '1';
+            imageDiv.style.minWidth = '300px';
+            const productImage = document.createElement('img');
+            productImage.className = 'product-detail-image';
+            productImage.src = '';
+            productImage.alt = 'Product image';
+            productImage.style.width = '100%';
+            productImage.style.maxWidth = '300px';
+            productImage.style.height = 'auto';
+            productImage.style.borderRadius = '8px';
+            productImage.style.display = 'none';
+            imageDiv.appendChild(productImage);
+            
+            // Right side - details
+            const detailsDiv = document.createElement('div');
+            detailsDiv.style.flex = '2';
+            detailsDiv.style.minWidth = '300px';
+            
+            const title = document.createElement('h2');
+            title.className = 'product-detail-title';
+            title.style.color = '#667eea';
+            title.style.marginBottom = '1rem';
+            
+            const description = document.createElement('p');
+            description.className = 'product-detail-description';
+            description.style.marginBottom = '1rem';
+            description.style.color = '#666';
+            
+            // Info box
+            const infoBox = document.createElement('div');
+            infoBox.style.background = '#f8f9fa';
+            infoBox.style.padding = '1rem';
+            infoBox.style.borderRadius = '8px';
+            infoBox.style.marginBottom = '1rem';
+            
+            // Price row
+            const priceRow = document.createElement('div');
+            priceRow.style.display = 'flex';
+            priceRow.style.justifyContent = 'space-between';
+            priceRow.style.marginBottom = '0.5rem';
+            priceRow.innerHTML = '<strong>Cena:</strong><span class="product-detail-price" style="font-size: 1.2em; color: #667eea; font-weight: bold;"></span>';
+            
+            // Category row
+            const categoryRow = document.createElement('div');
+            categoryRow.style.display = 'flex';
+            categoryRow.style.justifyContent = 'space-between';
+            categoryRow.style.marginBottom = '0.5rem';
+            categoryRow.innerHTML = '<strong>Kategorie:</strong><span class="product-detail-category"></span>';
+            
+            // Stock row
+            const stockRow = document.createElement('div');
+            stockRow.style.display = 'flex';
+            stockRow.style.justifyContent = 'space-between';
+            stockRow.innerHTML = '<strong>Skladem:</strong><span class="product-detail-stock"></span>';
+            
+            infoBox.appendChild(priceRow);
+            infoBox.appendChild(categoryRow);
+            infoBox.appendChild(stockRow);
+            
+            // Close button
+            const buttonDiv = document.createElement('div');
+            buttonDiv.style.textAlign = 'center';
+            const closeButton = document.createElement('button');
+            closeButton.className = 'btn btn-success';
+            closeButton.onclick = () => closeModal('productDetailModal');
+            closeButton.style.padding = '1rem 2rem';
+            closeButton.style.fontSize = '1.1em';
+            closeButton.textContent = '✅ Zavřít';
+            buttonDiv.appendChild(closeButton);
+            
+            // Assemble details div
+            detailsDiv.appendChild(title);
+            detailsDiv.appendChild(description);
+            detailsDiv.appendChild(infoBox);
+            detailsDiv.appendChild(buttonDiv);
+            
+            // Assemble content wrapper
+            contentWrapper.appendChild(imageDiv);
+            contentWrapper.appendChild(detailsDiv);
+            modalBody.appendChild(contentWrapper);
+            
+            modalContent.appendChild(modalHeader);
+            modalContent.appendChild(modalBody);
+            modal.appendChild(modalContent);
+            
+            return modal;
         }
 
         // Load data from API
