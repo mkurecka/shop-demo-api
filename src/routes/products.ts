@@ -3,6 +3,21 @@ import type { Env, Product, ApiResponse } from '../types';
 
 export const productsRouter = new Hono<{ Bindings: Env }>();
 
+// Pomocná funkce pro generování product URL
+function addProductUrl(product: any, baseUrl: string): any {
+  return {
+    ...product,
+    product_url: `${baseUrl}/api/products/${product.id}`,
+    shop_url: `${baseUrl}/#/product/${product.id}`,
+    direct_link: `${baseUrl}/?product=${product.id}`
+  };
+}
+
+// Pomocná funkce pro zpracování produktů s odkazy
+function processProductsWithUrls(products: any[], baseUrl: string): any[] {
+  return products.map(product => addProductUrl(product, baseUrl));
+}
+
 // GET /api/products - Seznam všech produktů
 productsRouter.get('/', async (c) => {
   try {
@@ -12,9 +27,13 @@ productsRouter.get('/', async (c) => {
       ORDER BY created_at DESC
     `).all();
 
+    // Přidání URL k produktům
+    const baseUrl = `https://${c.req.header('host') || 'shop-demo-api.kureckamichal.workers.dev'}`;
+    const productsWithUrls = processProductsWithUrls(results as any[], baseUrl);
+
     return c.json({
       success: true,
-      data: results,
+      data: productsWithUrls,
       message: 'Produkty úspěšně načteny'
     } as ApiResponse<Product[]>);
   } catch (error) {
@@ -57,10 +76,15 @@ productsRouter.get('/search', async (c) => {
 
     const { results } = await c.env.DB.prepare(sql).bind(...params).all();
 
+    // Přidání URL k produktům
+    const baseUrl = `https://${c.req.header('host') || 'shop-demo-api.kureckamichal.workers.dev'}`;
+    const productsWithUrls = processProductsWithUrls(results as any[], baseUrl);
+
     return c.json({
       success: true,
-      data: results,
-      message: `Nalezeno ${results.length} produktů`
+      data: productsWithUrls,
+      message: `Nalezeno ${results.length} produktů`,
+      search_params: { query, category, limit }
     } as ApiResponse<Product[]>);
   } catch (error) {
     console.error('Error searching products:', error);
@@ -103,9 +127,13 @@ productsRouter.get('/:id', async (c) => {
       } as ApiResponse<never>, 404);
     }
 
+    // Přidání URL k produktu
+    const baseUrl = `https://${c.req.header('host') || 'shop-demo-api.kureckamichal.workers.dev'}`;
+    const productWithUrl = addProductUrl(results[0], baseUrl);
+
     return c.json({
       success: true,
-      data: results[0],
+      data: productWithUrl,
       message: 'Produkt úspěšně načten'
     } as ApiResponse<Product>);
   } catch (error) {
@@ -143,9 +171,13 @@ productsRouter.post('/', async (c) => {
       RETURNING *
     `).bind(name, description || '', price, category, stock || 0, image_url || null).all();
 
+    // Přidání URL k novému produktu
+    const baseUrl = `https://${c.req.header('host') || 'shop-demo-api.kureckamichal.workers.dev'}`;
+    const productWithUrl = addProductUrl(results[0], baseUrl);
+
     return c.json({
       success: true,
-      data: results[0],
+      data: productWithUrl,
       message: 'Produkt úspěšně vytvořen'
     } as ApiResponse<Product>, 201);
   } catch (error) {
@@ -194,9 +226,13 @@ productsRouter.put('/:id', async (c) => {
       } as ApiResponse<never>, 404);
     }
 
+    // Přidání URL k aktualizovanému produktu
+    const baseUrl = `https://${c.req.header('host') || 'shop-demo-api.kureckamichal.workers.dev'}`;
+    const productWithUrl = addProductUrl(results[0], baseUrl);
+
     return c.json({
       success: true,
-      data: results[0],
+      data: productWithUrl,
       message: 'Produkt úspěšně aktualizován'
     } as ApiResponse<Product>);
   } catch (error) {
