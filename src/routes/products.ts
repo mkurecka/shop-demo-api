@@ -9,7 +9,7 @@ function addProductUrl(product: any, baseUrl: string): any {
     ...product,
     product_url: `${baseUrl}/api/products/${product.id}`,
     shop_url: `${baseUrl}/#/product/${product.id}`,
-    direct_link: `${baseUrl}/?product=${product.id}`
+    direct_link: `${baseUrl}/?tab=products&product=${product.id}`
   };
 }
 
