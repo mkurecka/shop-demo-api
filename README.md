@@ -103,14 +103,14 @@ The API will be available at `http://localhost:8787`
 
 ### Test order filtering:
 ```bash
-curl "https://shop-demo-api.kureckamichal.workers.dev/api/orders?email=jan.novak@email.cz"
-curl "https://shop-demo-api.kureckamichal.workers.dev/api/orders?orderNumber=ORD-2024010001"
-curl "https://shop-demo-api.kureckamichal.workers.dev/api/orders?email=jan.novak@email.cz&phone=+420776123456"
+curl "http://localhost:8787/api/orders?email=jan.novak@email.cz"
+curl "http://localhost:8787/api/orders?orderNumber=ORD-2024010001"
+curl "http://localhost:8787/api/orders?email=jan.novak@email.cz&phone=+420776123456"
 ```
 
 ### Test user simulation:
 ```bash
-curl -X POST "https://shop-demo-api.kureckamichal.workers.dev/api/chatbot/webhook" \
+curl -X POST "http://localhost:8787/api/chatbot/webhook" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer fake_session_for_jan.novak@email.cz" \
   -d '{"message": "Potřebuji pomoc s mojí objednávkou"}'
@@ -118,7 +118,7 @@ curl -X POST "https://shop-demo-api.kureckamichal.workers.dev/api/chatbot/webhoo
 
 ### Test anonymous chat:
 ```bash
-curl -X POST "https://shop-demo-api.kureckamichal.workers.dev/api/chatbot/webhook" \
+curl -X POST "http://localhost:8787/api/chatbot/webhook" \
   -H "Content-Type: application/json" \
   -d '{"message": "Jaké jsou vaše nejprodávanější produkty?"}'
 ```
@@ -174,7 +174,7 @@ curl -X POST "http://localhost:8787/api/orders" \
 npm run deploy
 ```
 
-Your API will be available at `https://shop-demo-api.your-subdomain.workers.dev`
+Your API will be available at `https://your-api.example.com`
 
 ## 🔧 N8N Integration
 
@@ -182,14 +182,14 @@ Update your N8N chatbot workflow to use this API:
 
 1. **Product Search Tool URL:**
    ```
-   https://your-api.workers.dev/api/products/search?q={query}&limit=5
+   https://your-api.example.com/api/products/search?q={query}&limit=5
    ```
 
 2. **Order Verification in Code Tool:**
    ```javascript
    const response = await $http.request({
      method: 'GET',
-     url: `https://your-api.workers.dev/api/orders/${orderNumber}?email=${email}&phone=${phone}`
+     url: `https://your-api.example.com/api/orders/${orderNumber}?email=${email}&phone=${phone}`
    });
    ```
 
