@@ -587,11 +587,20 @@ chatbotRouter.post('/webhook', async (c) => {
     // Odešleme data do n8n webhook
     const finalWebhookUrl = webhookUrl || 'https://n8n.2d2.cz/webhook/demo-test-chatbot';
     
+    // Prepare headers for webhook request
+    const webhookHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add basic auth if environment variables are set
+    if (c.env.WEBHOOK_AUTH_USER && c.env.WEBHOOK_AUTH_PASS) {
+      const credentials = btoa(`${c.env.WEBHOOK_AUTH_USER}:${c.env.WEBHOOK_AUTH_PASS}`);
+      webhookHeaders['Authorization'] = `Basic ${credentials}`;
+    }
+
     const webhookResponse = await fetch(finalWebhookUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: webhookHeaders,
       body: JSON.stringify(webhookData)
     });
 

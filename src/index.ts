@@ -8,6 +8,13 @@ import { chatbotRouter } from './routes/chatbot';
 import { authRouter } from './routes/auth';
 import { ticketsRouter } from './routes/tickets';
 import { frontendHTML } from './frontend';
+import { chatsPageHTML } from './chats-page';
+import { chatDetailPageHTML } from './chat-detail-page';
+import { dashboardPageHTML } from './dashboard-page';
+import { customersPageHTML } from './customers-page';
+import { customerDetailPageHTML } from './customer-detail-page';
+import { ordersPageHTML } from './orders-page';
+import { orderDetailPageHTML } from './order-detail-page';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -21,6 +28,58 @@ app.use('*', cors({
 // Serve frontend HTML for root path
 app.get('/', (c) => {
   return c.html(frontendHTML);
+});
+
+// Serve frontend HTML with product detail
+app.get('/products/:id', (c) => {
+  const productId = c.req.param('id');
+  // Inject product ID into frontend HTML for automatic loading
+  const htmlWithProductId = frontendHTML.replace(
+    'handleURLParameters();',
+    `handleURLParameters(); showProductDetailOnLoad('${productId}');`
+  );
+  return c.html(htmlWithProductId);
+});
+
+// Serve chats overview page
+app.get('/chats', (c) => {
+  return c.html(chatsPageHTML);
+});
+
+// Serve chat detail page
+app.get('/chats/:id', (c) => {
+  const sessionId = c.req.param('id');
+  const htmlWithSessionId = chatDetailPageHTML.replace('{{SESSION_ID}}', sessionId);
+  return c.html(htmlWithSessionId);
+});
+
+// Serve dashboard page
+app.get('/dashboard', (c) => {
+  return c.html(dashboardPageHTML);
+});
+
+// Serve customers page
+app.get('/customers', (c) => {
+  return c.html(customersPageHTML);
+});
+
+// Serve customer detail page
+app.get('/customers/:id', (c) => {
+  const customerId = c.req.param('id');
+  const htmlWithCustomerId = customerDetailPageHTML.replace('{{CUSTOMER_ID}}', customerId);
+  return c.html(htmlWithCustomerId);
+});
+
+// Serve orders page
+app.get('/orders', (c) => {
+  return c.html(ordersPageHTML);
+});
+
+// Serve order detail page
+app.get('/orders/:orderNumber', (c) => {
+  const orderNumber = c.req.param('orderNumber');
+  const htmlWithOrderNumber = orderDetailPageHTML.replace('{{ORDER_NUMBER}}', orderNumber);
+  return c.html(htmlWithOrderNumber);
 });
 
 // API info endpoint

@@ -374,10 +374,11 @@ export const frontendHTML = `<!DOCTYPE html>
 
     <div class="container">
         <div class="tabs" id="main-tabs">
-            <button class="tab active" onclick="showTab('products')">🛍️ Produkty</button>
-            <button class="tab" onclick="showTab('dashboard')">📊 Dashboard</button>
-            <button class="tab" onclick="showTab('orders')">📦 Objednávky</button>
-            <button class="tab" onclick="showTab('customers')">👥 Zákazníci</button>
+            <button class="tab active">🛍️ Produkty</button>
+            <button class="tab" onclick="window.location.href='/dashboard'">📊 Dashboard</button>
+            <button class="tab" onclick="window.location.href='/orders'">📦 Objednávky</button>
+            <button class="tab" onclick="window.location.href='/customers'">👥 Zákazníci</button>
+            <button class="tab" onclick="window.location.href='/chats'">💬 Chats</button>
             <button class="tab" onclick="showTab('user-actions')" id="user-actions-tab" style="display: none;">👤 Akce uživatele</button>
         </div>
 
@@ -612,7 +613,22 @@ export const frontendHTML = `<!DOCTYPE html>
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             
-            event.target.classList.add('active');
+            // Find and activate the correct tab button by matching the tab name
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                if (tab.textContent.includes('Produkty') && tabName === 'products') {
+                    tab.classList.add('active');
+                } else if (tab.textContent.includes('Dashboard') && tabName === 'dashboard') {
+                    tab.classList.add('active');
+                } else if (tab.textContent.includes('Objednávky') && tabName === 'orders') {
+                    tab.classList.add('active');
+                } else if (tab.textContent.includes('Zákazníci') && tabName === 'customers') {
+                    tab.classList.add('active');
+                } else if (tab.textContent.includes('Akce uživatele') && tabName === 'user-actions') {
+                    tab.classList.add('active');
+                }
+            });
+            
             document.getElementById(tabName).classList.add('active');
         }
 
@@ -954,219 +970,110 @@ export const frontendHTML = `<!DOCTYPE html>
             }
         }
 
-        // Handle URL parameters for direct product links
+        // Handle URL parameters (kept for compatibility)
         function handleURLParameters() {
             const urlParams = new URLSearchParams(window.location.search);
-            const productId = urlParams.get('product');
             const tab = urlParams.get('tab');
             
-            console.log('Handling URL parameters:', { productId, tab });
-            
             if (tab) {
-                // Switch to specified tab
-                setTimeout(() => {
-                    console.log('Switching to tab:', tab);
-                    showTab(tab);
-                }, 500);
-            }
-            
-            if (productId) {
-                // Show product detail with longer delay to ensure data is loaded
-                setTimeout(() => {
-                    console.log('Showing product detail for ID:', productId);
-                    showProductDetail(productId);
-                }, 2000);
+                setTimeout(() => showTab(tab), 500);
             }
         }
 
-        // Show product detail modal/section
-        async function showProductDetail(productId) {
-            console.log('showProductDetail called with ID:', productId);
+        // Show product detail on products tab (for /products/:id URLs)
+        async function showProductDetailOnLoad(productId) {
             try {
-                // First switch to products tab if not already there
-                console.log('Switching to products tab');
+                // Switch to products tab
                 showTab('products');
                 
-                // Load product details
-                const url = API_BASE + '/products/' + productId;
-                console.log('Fetching product from:', url);
-                const response = await fetch(url);
+                // Wait for products to load
+                setTimeout(async () => {
+                    await loadProductDetail(productId);
+                }, 1000);
+            } catch (error) {
+                console.error('Error showing product detail:', error);
+                showError('Chyba při načítání produktu');
+            }
+        }
+
+        // Load and display product detail on products tab
+        async function loadProductDetail(productId) {
+            try {
+                const response = await fetch(API_BASE + '/products/' + productId);
                 const data = await response.json();
                 
-                console.log('API response:', data);
-                
                 if (data.success) {
-                    console.log('Product loaded successfully, displaying modal');
-                    displayProductDetail(data.data);
+                    displayProductOnProductsTab(data.data);
                 } else {
-                    console.error('API returned error:', data.error);
-                    showError('Produkt nebyl nalezen: ' + (data.error?.message || ''));
+                    showError('Produkt nebyl nalezen');
                 }
             } catch (error) {
                 console.error('Error loading product detail:', error);
-                showError('Chyba při načítání produktu: ' + error.message);
+                showError('Chyba při načítání produktu');
             }
         }
 
-        // Display product detail in a modal or section
-        function displayProductDetail(product) {
-            console.log('displayProductDetail called with product:', product);
+        // Display product detail on products tab
+        function displayProductOnProductsTab(product) {
+            const productsGrid = document.getElementById('products-grid');
+            if (!productsGrid) return;
             
-            // Create product detail modal if it doesn't exist
-            let modal = document.getElementById('productDetailModal');
-            console.log('Existing modal found:', !!modal);
+            // Clear existing grid content
+            productsGrid.innerHTML = '';
             
-            if (!modal) {
-                console.log('Creating new modal');
-                modal = createProductDetailModal();
-                document.body.appendChild(modal);
-                console.log('Modal created and added to body');
-            }
+            // Create product detail card
+            const productCard = document.createElement('div');
+            productCard.className = 'card';
+            productCard.style.maxWidth = '800px';
+            productCard.style.margin = '0 auto';
             
-            // Populate modal with product data
-            console.log('Populating modal with product data');
-            try {
-                modal.querySelector('.product-detail-title').textContent = product.name;
-                modal.querySelector('.product-detail-description').textContent = product.description;
-                modal.querySelector('.product-detail-price').textContent = new Intl.NumberFormat('cs-CZ').format(product.price) + ' Kč';
-                modal.querySelector('.product-detail-category').textContent = product.category;
-                modal.querySelector('.product-detail-stock').textContent = product.stock + ' ks skladem';
-                
-                if (product.image_url) {
-                    modal.querySelector('.product-detail-image').src = product.image_url;
-                    modal.querySelector('.product-detail-image').style.display = 'block';
-                } else {
-                    modal.querySelector('.product-detail-image').style.display = 'none';
-                }
-                
-                console.log('Modal populated successfully');
-            } catch (error) {
-                console.error('Error populating modal:', error);
-            }
+            productCard.innerHTML = \`
+                <div class="card-header">
+                    <h2>📦 \${product.name}</h2>
+                    <button class="btn" onclick="loadProducts(); renderProductsGrid();" style="font-size: 0.9em;">
+                        ← Zpět na seznam produktů
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                        \${product.image_url ? \`<div style="flex: 1; min-width: 300px;">
+                            <img src="\${product.image_url}" alt="\${product.name}" 
+                                 style="width: 100%; max-width: 400px; height: auto; border-radius: 8px;">
+                        </div>\` : ''}
+                        <div style="flex: 2; min-width: 300px;">
+                            <p style="font-size: 1.1em; color: #666; margin-bottom: 1.5rem;">\${product.description}</p>
+                            
+                            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                                    <strong style="font-size: 1.1em;">Cena:</strong>
+                                    <span style="font-size: 1.5em; color: #667eea; font-weight: bold;">
+                                        \${new Intl.NumberFormat('cs-CZ').format(product.price)} Kč
+                                    </span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                                    <strong>Kategorie:</strong>
+                                    <span style="text-transform: capitalize;">\${product.category}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <strong>Skladem:</strong>
+                                    <span style="color: \${product.stock > 0 ? '#28a745' : '#dc3545'};">
+                                        \${product.stock} ks
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div style="text-align: center;">
+                                <button class="btn btn-success" style="padding: 1rem 2rem; font-size: 1.1em;" 
+                                        onclick="alert('Demo: Produkt by byl přidán do košíku')">
+                                    🛒 Přidat do košíku
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            \`;
             
-            // Show modal
-            console.log('Showing modal');
-            modal.style.display = 'block';
-            console.log('Modal display set to block');
-        }
-
-        // Create product detail modal HTML
-        function createProductDetailModal() {
-            const modal = document.createElement('div');
-            modal.id = 'productDetailModal';
-            modal.className = 'modal';
-            
-            const modalContent = document.createElement('div');
-            modalContent.className = 'modal-content';
-            modalContent.style.maxWidth = '600px';
-            
-            const modalHeader = document.createElement('div');
-            modalHeader.className = 'modal-header';
-            modalHeader.innerHTML = '<h3>📦 Detail produktu</h3>';
-            
-            const closeSpan = document.createElement('span');
-            closeSpan.className = 'close';
-            closeSpan.innerHTML = '&times;';
-            closeSpan.onclick = () => closeModal('productDetailModal');
-            modalHeader.appendChild(closeSpan);
-            
-            const modalBody = document.createElement('div');
-            modalBody.className = 'modal-body';
-            
-            // Build content without template literals to avoid escape issues
-            const contentWrapper = document.createElement('div');
-            contentWrapper.style.display = 'flex';
-            contentWrapper.style.gap = '2rem';
-            contentWrapper.style.flexWrap = 'wrap';
-            
-            // Left side - image
-            const imageDiv = document.createElement('div');
-            imageDiv.style.flex = '1';
-            imageDiv.style.minWidth = '300px';
-            const productImage = document.createElement('img');
-            productImage.className = 'product-detail-image';
-            productImage.src = '';
-            productImage.alt = 'Product image';
-            productImage.style.width = '100%';
-            productImage.style.maxWidth = '300px';
-            productImage.style.height = 'auto';
-            productImage.style.borderRadius = '8px';
-            productImage.style.display = 'none';
-            imageDiv.appendChild(productImage);
-            
-            // Right side - details
-            const detailsDiv = document.createElement('div');
-            detailsDiv.style.flex = '2';
-            detailsDiv.style.minWidth = '300px';
-            
-            const title = document.createElement('h2');
-            title.className = 'product-detail-title';
-            title.style.color = '#667eea';
-            title.style.marginBottom = '1rem';
-            
-            const description = document.createElement('p');
-            description.className = 'product-detail-description';
-            description.style.marginBottom = '1rem';
-            description.style.color = '#666';
-            
-            // Info box
-            const infoBox = document.createElement('div');
-            infoBox.style.background = '#f8f9fa';
-            infoBox.style.padding = '1rem';
-            infoBox.style.borderRadius = '8px';
-            infoBox.style.marginBottom = '1rem';
-            
-            // Price row
-            const priceRow = document.createElement('div');
-            priceRow.style.display = 'flex';
-            priceRow.style.justifyContent = 'space-between';
-            priceRow.style.marginBottom = '0.5rem';
-            priceRow.innerHTML = '<strong>Cena:</strong><span class="product-detail-price" style="font-size: 1.2em; color: #667eea; font-weight: bold;"></span>';
-            
-            // Category row
-            const categoryRow = document.createElement('div');
-            categoryRow.style.display = 'flex';
-            categoryRow.style.justifyContent = 'space-between';
-            categoryRow.style.marginBottom = '0.5rem';
-            categoryRow.innerHTML = '<strong>Kategorie:</strong><span class="product-detail-category"></span>';
-            
-            // Stock row
-            const stockRow = document.createElement('div');
-            stockRow.style.display = 'flex';
-            stockRow.style.justifyContent = 'space-between';
-            stockRow.innerHTML = '<strong>Skladem:</strong><span class="product-detail-stock"></span>';
-            
-            infoBox.appendChild(priceRow);
-            infoBox.appendChild(categoryRow);
-            infoBox.appendChild(stockRow);
-            
-            // Close button
-            const buttonDiv = document.createElement('div');
-            buttonDiv.style.textAlign = 'center';
-            const closeButton = document.createElement('button');
-            closeButton.className = 'btn btn-success';
-            closeButton.onclick = () => closeModal('productDetailModal');
-            closeButton.style.padding = '1rem 2rem';
-            closeButton.style.fontSize = '1.1em';
-            closeButton.textContent = '✅ Zavřít';
-            buttonDiv.appendChild(closeButton);
-            
-            // Assemble details div
-            detailsDiv.appendChild(title);
-            detailsDiv.appendChild(description);
-            detailsDiv.appendChild(infoBox);
-            detailsDiv.appendChild(buttonDiv);
-            
-            // Assemble content wrapper
-            contentWrapper.appendChild(imageDiv);
-            contentWrapper.appendChild(detailsDiv);
-            modalBody.appendChild(contentWrapper);
-            
-            modalContent.appendChild(modalHeader);
-            modalContent.appendChild(modalBody);
-            modal.appendChild(modalContent);
-            
-            return modal;
+            productsGrid.appendChild(productCard);
         }
 
         // Load data from API
@@ -1230,6 +1137,7 @@ export const frontendHTML = `<!DOCTYPE html>
             }
         }
 
+
         // Render functions
         function renderProductsGrid() {
             const grid = document.getElementById('products-grid');
@@ -1240,7 +1148,7 @@ export const frontendHTML = `<!DOCTYPE html>
             }
             
             grid.innerHTML = products.map(product => \`
-                <div class="product-card">
+                <div class="product-card" onclick="window.location.href='/products/\${product.id}'" style="cursor: pointer;">
                     <img src="\${product.image_url || 'https://via.placeholder.com/300x200'}" alt="\${product.name}" class="product-image">
                     <div class="product-info">
                         <div class="product-title">\${product.name}</div>
@@ -1300,6 +1208,7 @@ export const frontendHTML = `<!DOCTYPE html>
             tableHTML += '</tbody></table>';
             table.innerHTML = tableHTML;
         }
+
 
         function populateProductSelect() {
             const select = document.getElementById('order-product');
@@ -1458,6 +1367,7 @@ export const frontendHTML = `<!DOCTYPE html>
                 document.body.removeChild(alert);
             }, 5000);
         }
+
 
         // Close modals when clicking outside
         window.onclick = function(event) {

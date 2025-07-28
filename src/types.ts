@@ -1,6 +1,8 @@
 export interface Env {
   DB: D1Database;
   ENVIRONMENT: string;
+  WEBHOOK_AUTH_USER?: string;
+  WEBHOOK_AUTH_PASS?: string;
 }
 
 export interface Product {
