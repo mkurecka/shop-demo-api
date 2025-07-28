@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo E-shop - Správa obchodu</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 1rem 2rem;
+            background: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab:hover {
+            background: #f8f9fa;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 2rem;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            margin-right: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: #48bb78;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+        }
+
+        .btn-danger {
+            background: #f56565;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: #f8f9fa;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: #999;
+        }
+
+        .product-info {
+            padding: 1rem;
+        }
+
+        .product-name {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+        }
+
+        .product-description {
+            color: #718096;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .product-price {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .product-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #718096;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .status-processing {
+            background: #fef5e7;
+            color: #dd6b20;
+        }
+
+        .status-shipped {
+            background: #bee3f8;
+            color: #3182ce;
+        }
+
+        .status-delivered {
+            background: #c6f6d5;
+            color: #2f855a;
+        }
+
+        .status-cancelled {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .cart {
+            position: fixed;
+            right: 2rem;
+            bottom: 2rem;
+            background: #667eea;
+            color: white;
+            padding: 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+
+        .cart:hover {
+            transform: scale(1.05);
+        }
+
+        .cart-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #f56565;
+            color: white;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #718096;
+        }
+
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+
+        .success {
+            background: #c6f6d5;
+            color: #2f855a;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                margin: 5% auto;
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛍️ Demo E-shop</h1>
+        <p>Správa obchodu a nákupní rozhraní</p>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('products')">🛍️ Produkty</button>
+            <button class="tab" onclick="showTab('dashboard')">📊 Dashboard</button>
+            <button class="tab" onclick="showTab('orders')">📦 Objednávky</button>
+            <button class="tab" onclick="showTab('customers')">👥 Zákazníci</button>
+        </div>
+
+        <!-- Produkty Tab -->
+        <div id="products" class="tab-content active">
+            <div class="card-header">
+                <h2>Produkty v e-shopu</h2>
+                <button class="btn btn-success" onclick="addToCart('sample')">➕ Přidat do košíku (ukázka)</button>
+            </div>
+            <div id="products-grid" class="grid">
+                <div class="loading">Načítání produktů...</div>
+            </div>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2>📊 Přehled obchodu</h2>
+                </div>
+                <div class="card-body">
+                    <div class="grid">
+                        <div class="card">
+                            <div class="card-body">
+                                <h3>📦 Celkem objednávek</h3>
+                                <p style="font-size: 2rem; font-weight: bold; color: #667eea;" id="total-orders">-</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <h3>👥 Celkem zákazníků</h3>
+                                <p style="font-size: 2rem; font-weight: bold; color: #48bb78;" id="total-customers">-</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <h3>🛍️ Celkem produktů</h3>
+                                <p style="font-size: 2rem; font-weight: bold; color: #ed8936;" id="total-products">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>⚡ Rychlé akce</h3>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-success" onclick="openModal('newOrder')">➕ Nová objednávka</button>
+                    <button class="btn btn-success" onclick="openModal('newCustomer')">👤 Nový zákazník</button>
+                    <button class="btn" onclick="loadData()">🔄 Obnovit data</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Objednávky Tab -->
+        <div id="orders" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2>📦 Správa objednávek</h2>
+                    <button class="btn btn-success" onclick="openModal('newOrder')">➕ Nová objednávka</button>
+                </div>
+                <div class="card-body">
+                    <div id="orders-table">
+                        <div class="loading">Načítání objednávek...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zákazníci Tab -->
+        <div id="customers" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2>👥 Správa zákazníků</h2>
+                    <button class="btn btn-success" onclick="openModal('newCustomer')">➕ Nový zákazník</button>
+                </div>
+                <div class="card-body">
+                    <div id="customers-table">
+                        <div class="loading">Načítání zákazníků...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Košík -->
+    <div class="cart" onclick="openModal('cart')">
+        🛒
+        <div class="cart-count" id="cart-count">0</div>
+    </div>
+
+    <!-- Modaly -->
+    <!-- Nová objednávka -->
+    <div id="newOrder" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>➕ Nová objednávka</h3>
+                <span class="close" onclick="closeModal('newOrder')">&times;</span>
+            </div>
+            <form id="orderForm">
+                <div class="form-group">
+                    <label for="order-email">Email zákazníka:</label>
+                    <input type="email" id="order-email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="order-phone">Telefon:</label>
+                    <input type="tel" id="order-phone" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="order-address">Doručovací adresa:</label>
+                    <textarea id="order-address" class="form-control" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="order-product">Produkt:</label>
+                    <select id="order-product" class="form-control" required>
+                        <option value="">Vyberte produkt...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="order-quantity">Množství:</label>
+                    <input type="number" id="order-quantity" class="form-control" min="1" value="1" required>
+                </div>
+                <button type="submit" class="btn btn-success">✅ Vytvořit objednávku</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Nový zákazník -->
+    <div id="newCustomer" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>👤 Nový zákazník</h3>
+                <span class="close" onclick="closeModal('newCustomer')">&times;</span>
+            </div>
+            <form id="customerForm">
+                <div class="form-group">
+                    <label for="customer-email">Email:</label>
+                    <input type="email" id="customer-email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="customer-first-name">Jméno:</label>
+                    <input type="text" id="customer-first-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="customer-last-name">Příjmení:</label>
+                    <input type="text" id="customer-last-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="customer-phone">Telefon:</label>
+                    <input type="tel" id="customer-phone" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="customer-address">Adresa:</label>
+                    <input type="text" id="customer-address" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="customer-city">Město:</label>
+                    <input type="text" id="customer-city" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="customer-postal">PSČ:</label>
+                    <input type="text" id="customer-postal" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-success">✅ Vytvořit zákazníka</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Košík -->
+    <div id="cart" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🛒 Nákupní košík</h3>
+                <span class="close" onclick="closeModal('cart')">&times;</span>
+            </div>
+            <div id="cart-items">
+                <p>Košík je prázdný</p>
+            </div>
+            <div style="margin-top: 1rem;">
+                <button class="btn btn-success" onclick="checkout()">💳 Objednat</button>
+                <button class="btn btn-danger" onclick="clearCart()">🗑️ Vyprázdnit košík</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://shop-demo-api.kureckamichal.workers.dev/api';
+        let cart = [];
+        let products = [];
+        let customers = [];
+        let orders = [];
+
+        // Inicializace
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            updateCartCount();
+        });
+
+        // Tab management
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        // Modal management
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Load data from API
+        async function loadData() {
+            try {
+                await Promise.all([
+                    loadProducts(),
+                    loadCustomers(), 
+                    loadOrders()
+                ]);
+                updateDashboard();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError('Chyba při načítání dat: ' + error.message);
+            }
+        }
+
+        async function loadProducts() {
+            try {
+                const response = await fetch(`${API_BASE}/products`);
+                const data = await response.json();
+                if (data.success) {
+                    products = data.data;
+                    renderProducts();
+                    populateProductSelect();
+                }
+            } catch (error) {
+                document.getElementById('products-grid').innerHTML = '<div class="error">Chyba při načítání produktů</div>';
+            }
+        }
+
+        async function loadCustomers() {
+            try {
+                const response = await fetch(`${API_BASE}/customers`);
+                const data = await response.json();
+                if (data.success) {
+                    customers = data.data;
+                    renderCustomers();
+                }
+            } catch (error) {
+                document.getElementById('customers-table').innerHTML = '<div class="error">Chyba při načítání zákazníků</div>';
+            }
+        }
+
+        async function loadOrders() {
+            try {
+                const response = await fetch(`${API_BASE}/orders`);
+                const data = await response.json();
+                if (data.success) {
+                    orders = data.data;
+                    renderOrders();
+                }
+            } catch (error) {
+                document.getElementById('orders-table').innerHTML = '<div class="error">Chyba při načítání objednávek</div>';
+            }
+        }
+
+        // Render functions
+        function renderProducts() {
+            const grid = document.getElementById('products-grid');
+            grid.innerHTML = products.map(product => `
+                <div class="product-card">
+                    <div class="product-image">📱</div>
+                    <div class="product-info">
+                        <div class="product-name">${product.name}</div>
+                        <div class="product-description">${product.description}</div>
+                        <div class="product-price">${formatPrice(product.price)} Kč</div>
+                        <div class="product-meta">
+                            <span>Kategorie: ${product.category}</span>
+                            <span>Skladem: ${product.stock}</span>
+                        </div>
+                        <button class="btn" onclick="addToCart(${product.id})" ${product.stock === 0 ? 'disabled' : ''}>
+                            🛒 Do košíku
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderCustomers() {
+            const table = document.getElementById('customers-table');
+            table.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Jméno</th>
+                            <th>Email</th>
+                            <th>Telefon</th>
+                            <th>Město</th>
+                            <th>Registrace</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${customers.map(customer => `
+                            <tr>
+                                <td>${customer.id}</td>
+                                <td>${customer.first_name} ${customer.last_name}</td>
+                                <td>${customer.email}</td>
+                                <td>${customer.phone}</td>
+                                <td>${customer.city || '-'}</td>
+                                <td>${formatDate(customer.created_at)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderOrders() {
+            const table = document.getElementById('orders-table');
+            table.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Číslo objednávky</th>
+                            <th>Email</th>
+                            <th>Stav</th>
+                            <th>Celkem</th>
+                            <th>Vytvořeno</th>
+                            <th>Doručení</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${orders.map(order => `
+                            <tr>
+                                <td><strong>${order.order_number}</strong></td>
+                                <td>${order.customer_email}</td>
+                                <td><span class="status status-${order.status}">${getStatusText(order.status)}</span></td>
+                                <td><strong>${formatPrice(order.total)} Kč</strong></td>
+                                <td>${formatDate(order.created_at)}</td>
+                                <td>${order.estimated_delivery ? formatDate(order.estimated_delivery) : '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function updateDashboard() {
+            document.getElementById('total-orders').textContent = orders.length;
+            document.getElementById('total-customers').textContent = customers.length;
+            document.getElementById('total-products').textContent = products.length;
+        }
+
+        function populateProductSelect() {
+            const select = document.getElementById('order-product');
+            select.innerHTML = '<option value="">Vyberte produkt...</option>' + 
+                products.map(product => `<option value="${product.id}">${product.name} - ${formatPrice(product.price)} Kč</option>`).join('');
+        }
+
+        // Cart functions
+        function addToCart(productId) {
+            if (productId === 'sample') {
+                showSuccess('Ukázka přidání do košíku!');
+                return;
+            }
+            
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+
+            const existingItem = cart.find(item => item.id === productId);
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({
+                    id: productId,
+                    name: product.name,
+                    price: product.price,
+                    quantity: 1
+                });
+            }
+            
+            updateCartCount();
+            showSuccess(`${product.name} přidán do košíku!`);
+        }
+
+        function updateCartCount() {
+            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+            document.getElementById('cart-count').textContent = count;
+            
+            const cartItems = document.getElementById('cart-items');
+            if (cart.length === 0) {
+                cartItems.innerHTML = '<p>Košík je prázdný</p>';
+            } else {
+                const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                cartItems.innerHTML = `
+                    ${cart.map(item => `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                            <div>
+                                <strong>${item.name}</strong><br>
+                                <small>${formatPrice(item.price)} Kč × ${item.quantity}</small>
+                            </div>
+                            <div>
+                                <button class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick="removeFromCart(${item.id})">×</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                    <div style="margin-top: 1rem; font-size: 1.2rem; font-weight: bold;">
+                        Celkem: ${formatPrice(total)} Kč
+                    </div>
+                `;
+            }
+        }
+
+        function removeFromCart(productId) {
+            cart = cart.filter(item => item.id !== productId);
+            updateCartCount();
+        }
+
+        function clearCart() {
+            cart = [];
+            updateCartCount();
+            showSuccess('Košík byl vyprázdněn');
+        }
+
+        async function checkout() {
+            if (cart.length === 0) {
+                showError('Košík je prázdný!');
+                return;
+            }
+            
+            const email = prompt('Zadejte váš email:');
+            const phone = prompt('Zadejte váš telefon:');
+            const address = prompt('Zadejte doručovací adresu:');
+            
+            if (!email || !phone || !address) {
+                showError('Všechny údaje jsou povinné!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        customer_email: email,
+                        customer_phone: phone,
+                        shipping_address: address,
+                        items: cart.map(item => ({
+                            product_id: item.id,
+                            quantity: item.quantity
+                        }))
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showSuccess(`Objednávka ${data.data.order_number} byla úspěšně vytvořena!`);
+                    clearCart();
+                    closeModal('cart');
+                    loadOrders();
+                } else {
+                    showError('Chyba při vytváření objednávky: ' + data.error.message);
+                }
+            } catch (error) {
+                showError('Chyba při odesílání objednávky: ' + error.message);
+            }
+        }
+
+        // Form handlers
+        document.getElementById('orderForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                customer_email: document.getElementById('order-email').value,
+                customer_phone: document.getElementById('order-phone').value,
+                shipping_address: document.getElementById('order-address').value,
+                items: [{
+                    product_id: parseInt(document.getElementById('order-product').value),
+                    quantity: parseInt(document.getElementById('order-quantity').value)
+                }]
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showSuccess(`Objednávka ${data.data.order_number} byla úspěšně vytvořena!`);
+                    closeModal('newOrder');
+                    this.reset();
+                    loadOrders();
+                } else {
+                    showError('Chyba při vytváření objednávky: ' + data.error.message);
+                }
+            } catch (error) {
+                showError('Chyba při odesílání objednávky: ' + error.message);
+            }
+        });
+
+        document.getElementById('customerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                email: document.getElementById('customer-email').value,
+                first_name: document.getElementById('customer-first-name').value,
+                last_name: document.getElementById('customer-last-name').value,
+                phone: document.getElementById('customer-phone').value,
+                address: document.getElementById('customer-address').value,
+                city: document.getElementById('customer-city').value,
+                postal_code: document.getElementById('customer-postal').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/customers`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showSuccess('Zákazník byl úspěšně vytvořen!');
+                    closeModal('newCustomer');
+                    this.reset();
+                    loadCustomers();
+                } else {
+                    showError('Chyba při vytváření zákazníka: ' + data.error.message);
+                }
+            } catch (error) {
+                showError('Chyba při odesílání zákazníka: ' + error.message);
+            }
+        });
+
+        // Utility functions
+        function formatPrice(price) {
+            return new Intl.NumberFormat('cs-CZ').format(price);
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleString('cs-CZ');
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                'pending': 'Čeká',
+                'processing': 'Zpracovává se',
+                'shipped': 'Odesláno',
+                'delivered': 'Doručeno',
+                'cancelled': 'Zrušeno'
+            };
+            return statusMap[status] || status;
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            errorDiv.style.position = 'fixed';
+            errorDiv.style.top = '20px';
+            errorDiv.style.right = '20px';
+            errorDiv.style.zIndex = '1001';
+            document.body.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.textContent = message;
+            successDiv.style.position = 'fixed';
+            successDiv.style.top = '20px';
+            successDiv.style.right = '20px';
+            successDiv.style.zIndex = '1001';
+            document.body.appendChild(successDiv);
+            setTimeout(() => successDiv.remove(), 3000);
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>

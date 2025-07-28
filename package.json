@@ -1,0 +1,25 @@
+{
+  "name": "shop-demo-api",
+  "version": "1.0.0",
+  "description": "Demo e-shop API for AI chatbot testing",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:generate": "wrangler d1 migrations create shop-demo-db",
+    "db:migrate": "wrangler d1 migrations apply shop-demo-db",
+    "db:seed": "wrangler d1 execute shop-demo-db --file=./migrations/seed.sql"
+  },
+  "dependencies": {
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240112.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^3.0.0"
+  },
+  "keywords": ["cloudflare-workers", "api", "ecommerce", "demo"],
+  "author": "Your Name",
+  "license": "MIT"
+}
