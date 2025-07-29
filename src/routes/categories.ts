@@ -39,9 +39,22 @@ const CATEGORY_METADATA = {
   }
 };
 
+// Helper function to generate category URLs
+function addCategoryUrls(category: any, baseUrl: string): any {
+  return {
+    ...category,
+    category_url: `${baseUrl}/categories/${category.id}`,
+    api_url: `${baseUrl}/api/categories/${category.id}`,
+    products_url: `${baseUrl}/products?category=${category.id}`,
+    stats_url: `${baseUrl}/api/categories/${category.id}/stats`
+  };
+}
+
 // GET /api/categories - List all categories with metadata
 categoriesRouter.get('/', async (c) => {
   try {
+    const baseUrl = `https://${c.req.header('host') || 'shop-demo-api.kureckamichal.workers.dev'}`;
+    
     // Get product counts for each category
     const { results } = await c.env.DB.prepare(`
       SELECT category, COUNT(*) as product_count
@@ -56,11 +69,14 @@ categoriesRouter.get('/', async (c) => {
       categoryStats.set(row.category, row.product_count);
     }
 
-    // Combine metadata with product counts
-    const categories = Object.values(CATEGORY_METADATA).map(category => ({
-      ...category,
-      product_count: categoryStats.get(category.id) || 0
-    }));
+    // Combine metadata with product counts and URLs
+    const categories = Object.values(CATEGORY_METADATA).map(category => {
+      const categoryWithCount = {
+        ...category,
+        product_count: categoryStats.get(category.id) || 0
+      };
+      return addCategoryUrls(categoryWithCount, baseUrl);
+    });
 
     return c.json({
       success: true,
@@ -123,7 +139,7 @@ categoriesRouter.get('/:categoryId', async (c) => {
 
     const total = (countResult[0] as any)?.total || 0;
 
-    // Add product URLs
+    // Add product URLs  
     const baseUrl = `https://${c.req.header('host') || 'shop-demo-api.kureckamichal.workers.dev'}`;
     const productsWithUrls = (products as any[]).map(product => ({
       ...product,
@@ -135,7 +151,7 @@ categoriesRouter.get('/:categoryId', async (c) => {
     return c.json({
       success: true,
       data: {
-        category: categoryMeta,
+        category: addCategoryUrls(categoryMeta, baseUrl),
         products: productsWithUrls,
         pagination: {
           total,

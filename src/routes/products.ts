@@ -204,6 +204,34 @@ productsRouter.get('/', async (c) => {
         sort_by: validSortBy,
         sort_order: validSortOrder
       },
+      filter_urls: {
+        current_filter: `${baseUrl}/products?${new URLSearchParams(Object.entries({
+          ...(query && { q: query }),
+          ...(category && { category }),
+          ...(minPrice > 0 && { min_price: minPrice.toString() }),
+          ...(maxPrice < 999999 && { max_price: maxPrice.toString() }),
+          ...(color && { color }),
+          ...(size && { size }),
+          ...(memory && { memory }),
+          ...(material && { material }),
+          ...(inStock && { in_stock: 'true' }),
+          sort_by: validSortBy,
+          sort_order: validSortOrder
+        }).filter(([_, v]) => v !== undefined)).toString()}`,
+        clear_filters: `${baseUrl}/products`,
+        category_url: category ? `${baseUrl}/categories/${category}` : null,
+        share_url: `${baseUrl}/products?${new URLSearchParams(Object.entries({
+          ...(query && { q: query }),
+          ...(category && { category }),
+          ...(minPrice > 0 && { min_price: minPrice.toString() }),
+          ...(maxPrice < 999999 && { max_price: maxPrice.toString() }),
+          ...(color && { color }),
+          ...(size && { size }),
+          ...(memory && { memory }),
+          ...(material && { material }),
+          ...(inStock && { in_stock: 'true' })
+        }).filter(([_, v]) => v !== undefined)).toString()}`
+      },
       message: `Nalezeno ${results.length} produktů z celkem ${totalCount}`
     } as ApiResponse<Product[]>);
   } catch (error) {
@@ -218,9 +246,11 @@ productsRouter.get('/', async (c) => {
   }
 });
 
-// GET /api/products/filters - Získání dostupných filtrů
+// GET /api/products/filters - Získání dostupných filtrů s URL odkazy
 productsRouter.get('/filters', async (c) => {
   try {
+    const baseUrl = `https://${c.req.header('host') || 'shop-demo-api.kureckamichal.workers.dev'}`;
+
     // Get all categories
     const { results: categoryResults } = await c.env.DB.prepare(`
       SELECT DISTINCT category FROM products ORDER BY category
@@ -271,21 +301,50 @@ productsRouter.get('/filters', async (c) => {
         value: attr.value,
         display_value: attr.display_value,
         hex_color: attr.hex_color,
-        product_count: attr.product_count
+        product_count: attr.product_count,
+        filter_url: `${baseUrl}/products?${attr.attribute_name}=${encodeURIComponent(attr.value)}`,
+        api_filter_url: `${baseUrl}/api/products?${attr.attribute_name}=${encodeURIComponent(attr.value)}`
       });
     });
 
     const priceRange = priceResults[0] as any;
     
+    // Add URLs to categories  
+    const categoriesWithUrls = categoryResults.map((cat: any) => ({
+      name: cat.category,
+      category_url: `${baseUrl}/categories/${cat.category}`,
+      products_url: `${baseUrl}/products?category=${cat.category}`,
+      api_category_url: `${baseUrl}/api/categories/${cat.category}`,
+      filter_url: `${baseUrl}/products?category=${cat.category}`,
+      api_filter_url: `${baseUrl}/api/products?category=${cat.category}`
+    }));
+
+    // Add URLs to attributes
+    const attributesWithUrls = Object.values(attributes).map((attr: any) => ({
+      ...attr,
+      filter_url: `${baseUrl}/products?${attr.name}=`,
+      api_filter_url: `${baseUrl}/api/products?${attr.name}=`
+    }));
+    
     return c.json({
       success: true,
       data: {
-        categories: categoryResults.map((c: any) => c.category),
+        categories: categoriesWithUrls,
         price_range: {
           min: priceRange?.min_price || 0,
-          max: priceRange?.max_price || 0
+          max: priceRange?.max_price || 0,
+          filter_url: `${baseUrl}/products?min_price={min}&max_price={max}`,
+          api_filter_url: `${baseUrl}/api/products?min_price={min}&max_price={max}`
         },
-        attributes: Object.values(attributes)
+        attributes: attributesWithUrls,
+        base_filter_url: `${baseUrl}/products`,
+        api_base_filter_url: `${baseUrl}/api/products`,
+        example_urls: {
+          red_products: `${baseUrl}/products?color=red`,
+          electronics_under_1000: `${baseUrl}/products?category=elektronika&max_price=1000`,
+          large_red_items_in_stock: `${baseUrl}/products?size=L&color=red&in_stock=true`,
+          complex_filter: `${baseUrl}/products?q=phone&color=black&memory=128GB&min_price=500&max_price=2000&sort_by=price`
+        }
       },
       message: 'Filtry úspěšně načteny'
     });
