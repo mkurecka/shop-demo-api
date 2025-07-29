@@ -422,6 +422,7 @@ const HOME_SCRIPTS = `
 
     // Chat widget functionality
     let currentUser = null;
+    let currentSessionId = null; // Persistent session ID for current chat conversation
     const webhookUrl = 'https://n8n.2d2.cz/webhook/demo-test-chatbot';
 
     const users = [
@@ -457,6 +458,7 @@ const HOME_SCRIPTS = `
 
     async function selectUser(user) {
         currentUser = user;
+        currentSessionId = null; // Reset session ID when changing users
         
         // Update button states
         document.querySelectorAll('.user-selector button').forEach(btn => {
@@ -558,6 +560,11 @@ const HOME_SCRIPTS = `
         sendBtn.textContent = 'Odesílám...';
 
         try {
+            // Generate session ID only if we don't have one yet
+            if (!currentSessionId) {
+                currentSessionId = 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8).toUpperCase();
+            }
+
             const headers = {
                 'Content-Type': 'application/json'
             };
@@ -573,7 +580,8 @@ const HOME_SCRIPTS = `
                 body: JSON.stringify({
                     message: message,
                     webhookUrl: customWebhookUrl,
-                    simulatedUser: currentUser
+                    simulatedUser: currentUser,
+                    sessionId: currentSessionId
                 })
             });
 
@@ -627,6 +635,7 @@ const HOME_SCRIPTS = `
 
     function clearChatHistory() {
         document.getElementById('chat-history').innerHTML = '';
+        currentSessionId = null; // Reset session ID for new conversation
     }
 
     // Handle Enter key in chat input
