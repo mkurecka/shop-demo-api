@@ -999,7 +999,7 @@ export const frontendHTML = `<!DOCTYPE html>
         // Load and display product detail on products tab
         async function loadProductDetail(productId) {
             try {
-                const response = await fetch(API_BASE + '/products/' + productId);
+                const response = await fetch(API_BASE + '/products/' + productId + '?variants=true');
                 const data = await response.json();
                 
                 if (data.success) {
@@ -1021,11 +1021,69 @@ export const frontendHTML = `<!DOCTYPE html>
             // Clear existing grid content
             productsGrid.innerHTML = '';
             
+            // Find default variant or use first available
+            let selectedVariant = null;
+            let currentPrice = product.price;
+            let currentStock = product.stock;
+            let currentImage = product.image_url;
+            
+            if (product.variants && product.variants.length > 0) {
+                selectedVariant = product.variants.find(v => v.is_default) || product.variants[0];
+                currentPrice = product.price + selectedVariant.price_adjustment;
+                currentStock = selectedVariant.stock;
+                currentImage = selectedVariant.image_url || product.image_url;
+            }
+            
             // Create product detail card
             const productCard = document.createElement('div');
             productCard.className = 'card';
             productCard.style.maxWidth = '800px';
             productCard.style.margin = '0 auto';
+            
+            // Generate variant selection HTML
+            let variantSelectionsHTML = '';
+            if (product.available_attributes && Object.keys(product.available_attributes).length > 0) {
+                variantSelectionsHTML = '<div style="margin-bottom: 1.5rem;"><h4>Vyberte variantu:</h4>';
+                
+                for (const [attributeName, values] of Object.entries(product.available_attributes)) {
+                    const displayName = values[0]?.display_name || attributeName;
+                    variantSelectionsHTML += \`
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: bold;">
+                                \${displayName}:
+                            </label>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">\`;
+                    
+                    for (const value of values) {
+                        const isSelected = selectedVariant && selectedVariant.attributes.some(attr => 
+                            attr.attribute_name === attributeName && attr.value === value.value
+                        );
+                        
+                        if (attributeName === 'color' && value.hex_color) {
+                            variantSelectionsHTML += \`
+                                <button class="variant-option color-option \${isSelected ? 'selected' : ''}" 
+                                        data-attribute="\${attributeName}" data-value="\${value.value}"
+                                        style="width: 40px; height: 40px; border-radius: 50%; background-color: \${value.hex_color}; 
+                                               border: 3px solid \${isSelected ? '#667eea' : '#ddd'}; cursor: pointer;"
+                                        title="\${value.display_value}">
+                                </button>\`;
+                        } else {
+                            variantSelectionsHTML += \`
+                                <button class="variant-option \${isSelected ? 'selected' : ''}" 
+                                        data-attribute="\${attributeName}" data-value="\${value.value}"
+                                        style="padding: 0.5rem 1rem; border: 2px solid \${isSelected ? '#667eea' : '#ddd'}; 
+                                               background: \${isSelected ? '#667eea' : 'white'}; 
+                                               color: \${isSelected ? 'white' : '#333'}; border-radius: 4px; cursor: pointer;">
+                                    \${value.display_value}
+                                </button>\`;
+                        }
+                    }
+                    
+                    variantSelectionsHTML += '</div></div>';
+                }
+                
+                variantSelectionsHTML += '</div>';
+            }
             
             productCard.innerHTML = \`
                 <div class="card-header">
@@ -1036,18 +1094,20 @@ export const frontendHTML = `<!DOCTYPE html>
                 </div>
                 <div class="card-body">
                     <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
-                        \${product.image_url ? \`<div style="flex: 1; min-width: 300px;">
-                            <img src="\${product.image_url}" alt="\${product.name}" 
+                        \${currentImage ? \`<div style="flex: 1; min-width: 300px;">
+                            <img id="product-image" src="\${currentImage}" alt="\${product.name}" 
                                  style="width: 100%; max-width: 400px; height: auto; border-radius: 8px;">
                         </div>\` : ''}
                         <div style="flex: 2; min-width: 300px;">
                             <p style="font-size: 1.1em; color: #666; margin-bottom: 1.5rem;">\${product.description}</p>
                             
+                            \${variantSelectionsHTML}
+                            
                             <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
                                 <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
                                     <strong style="font-size: 1.1em;">Cena:</strong>
-                                    <span style="font-size: 1.5em; color: #667eea; font-weight: bold;">
-                                        \${new Intl.NumberFormat('cs-CZ').format(product.price)} Kč
+                                    <span id="current-price" style="font-size: 1.5em; color: #667eea; font-weight: bold;">
+                                        \${new Intl.NumberFormat('cs-CZ').format(currentPrice)} Kč
                                     </span>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
@@ -1056,16 +1116,17 @@ export const frontendHTML = `<!DOCTYPE html>
                                 </div>
                                 <div style="display: flex; justify-content: space-between;">
                                     <strong>Skladem:</strong>
-                                    <span style="color: \${product.stock > 0 ? '#28a745' : '#dc3545'};">
-                                        \${product.stock} ks
+                                    <span id="current-stock" style="color: \${currentStock > 0 ? '#28a745' : '#dc3545'};">
+                                        \${currentStock} ks
                                     </span>
                                 </div>
                             </div>
                             
                             <div style="text-align: center;">
-                                <button class="btn btn-success" style="padding: 1rem 2rem; font-size: 1.1em;" 
-                                        onclick="alert('Demo: Produkt by byl přidán do košíku')">
-                                    🛒 Přidat do košíku
+                                <button id="add-to-cart-btn" class="btn btn-success" style="padding: 1rem 2rem; font-size: 1.1em;" 
+                                        onclick="addToCart(\${product.id}, getSelectedVariant())"
+                                        \${currentStock === 0 ? 'disabled' : ''}>
+                                    🛒 \${currentStock === 0 ? 'Není skladem' : 'Přidat do košíku'}
                                 </button>
                             </div>
                         </div>
@@ -1074,6 +1135,136 @@ export const frontendHTML = `<!DOCTYPE html>
             \`;
             
             productsGrid.appendChild(productCard);
+            
+            // Store product data globally for variant selection
+            window.currentProduct = product;
+            window.selectedVariant = selectedVariant;
+            
+            // Add event listeners for variant selection
+            if (product.variants && product.variants.length > 0) {
+                setupVariantSelection();
+            }
+        }
+
+        // Setup variant selection functionality
+        function setupVariantSelection() {
+            const variantOptions = document.querySelectorAll('.variant-option');
+            
+            variantOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const attribute = this.getAttribute('data-attribute');
+                    const value = this.getAttribute('data-value');
+                    
+                    // Remove selected class from other options in the same attribute group
+                    document.querySelectorAll(\`[data-attribute="\${attribute}"]\`).forEach(opt => {
+                        opt.classList.remove('selected');
+                        if (opt.classList.contains('color-option')) {
+                            opt.style.border = '3px solid #ddd';
+                        } else {
+                            opt.style.border = '2px solid #ddd';
+                            opt.style.background = 'white';
+                            opt.style.color = '#333';
+                        }
+                    });
+                    
+                    // Add selected class to clicked option
+                    this.classList.add('selected');
+                    if (this.classList.contains('color-option')) {
+                        this.style.border = '3px solid #667eea';
+                    } else {
+                        this.style.border = '2px solid #667eea';
+                        this.style.background = '#667eea';
+                        this.style.color = 'white';
+                    }
+                    
+                    // Update selected variant and display
+                    updateSelectedVariant();
+                });
+            });
+        }
+
+        // Update selected variant based on current selection
+        function updateSelectedVariant() {
+            if (!window.currentProduct || !window.currentProduct.variants) return;
+            
+            // Get currently selected attributes
+            const selectedAttributes = {};
+            document.querySelectorAll('.variant-option.selected').forEach(option => {
+                const attribute = option.getAttribute('data-attribute');
+                const value = option.getAttribute('data-value');
+                selectedAttributes[attribute] = value;
+            });
+            
+            // Find matching variant
+            let matchingVariant = null;
+            for (const variant of window.currentProduct.variants) {
+                let matches = true;
+                for (const [attrName, attrValue] of Object.entries(selectedAttributes)) {
+                    const hasAttribute = variant.attributes.some(attr => 
+                        attr.attribute_name === attrName && attr.value === attrValue
+                    );
+                    if (!hasAttribute) {
+                        matches = false;
+                        break;
+                    }
+                }
+                if (matches) {
+                    matchingVariant = variant;
+                    break;
+                }
+            }
+            
+            if (matchingVariant) {
+                window.selectedVariant = matchingVariant;
+                
+                // Update price
+                const newPrice = window.currentProduct.price + matchingVariant.price_adjustment;
+                const priceElement = document.getElementById('current-price');
+                if (priceElement) {
+                    priceElement.textContent = new Intl.NumberFormat('cs-CZ').format(newPrice) + ' Kč';
+                }
+                
+                // Update stock
+                const stockElement = document.getElementById('current-stock');
+                if (stockElement) {
+                    stockElement.textContent = matchingVariant.stock + ' ks';
+                    stockElement.style.color = matchingVariant.stock > 0 ? '#28a745' : '#dc3545';
+                }
+                
+                // Update image if variant has one
+                if (matchingVariant.image_url) {
+                    const imageElement = document.getElementById('product-image');
+                    if (imageElement) {
+                        imageElement.src = matchingVariant.image_url;
+                    }
+                }
+                
+                // Update add to cart button
+                const addToCartBtn = document.getElementById('add-to-cart-btn');
+                if (addToCartBtn) {
+                    if (matchingVariant.stock === 0) {
+                        addToCartBtn.disabled = true;
+                        addToCartBtn.textContent = '🛒 Není skladem';
+                    } else {
+                        addToCartBtn.disabled = false;
+                        addToCartBtn.textContent = '🛒 Přidat do košíku';
+                    }
+                }
+            }
+        }
+
+        // Get currently selected variant
+        function getSelectedVariant() {
+            return window.selectedVariant ? window.selectedVariant.id : null;
+        }
+
+        // Add to cart functionality
+        function addToCart(productId, variantId) {
+            if (variantId) {
+                alert(\`Demo: Produkt (varianta ID: \${variantId}) by byl přidán do košíku\`);
+            } else {
+                alert(\`Demo: Produkt (ID: \${productId}) by byl přidán do košíku\`);
+            }
         }
 
         // Load data from API
