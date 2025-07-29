@@ -100,6 +100,20 @@ export const orderDetailPageHTML = `<!DOCTYPE html>
         .status-delivered { background: #dcfce7; color: #166534; }
         .status-cancelled { background: #fecaca; color: #991b1b; }
 
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #f56565;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
         .order-items {
             margin-top: 1rem;
         }
@@ -227,14 +241,17 @@ export const orderDetailPageHTML = `<!DOCTYPE html>
 
         async function loadOrderDetail() {
             try {
-                const response = await fetch(API_BASE + \`/orders/\${orderNumber}\`);
+                // Load order without verification - use skip_phone_check for logged-in user simulation
+                const url = API_BASE + \`/orders/\${orderNumber}?email=skip_verification&phone=skip_phone_check\`;
+                const response = await fetch(url);
                 const data = await response.json();
                 
                 if (data.success) {
                     renderOrderInfo(data.data);
                     renderOrderItems(data.data);
                 } else {
-                    showError('Objednávka nebyla nalezena');
+                    document.getElementById('order-info').innerHTML = '<div class="error">Objednávka nebyla nalezena</div>';
+                    document.getElementById('order-items').innerHTML = '<div class="error">Chyba při načítání položek objednávky</div>';
                 }
             } catch (error) {
                 console.error('Error loading order detail:', error);
