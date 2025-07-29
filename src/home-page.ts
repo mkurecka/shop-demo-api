@@ -221,6 +221,19 @@ const HOME_STYLES = `
         font-size: 0.9rem;
     }
 
+    .user-orders {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(44, 122, 123, 0.2);
+    }
+
+    .user-orders h5 {
+        color: #2c7a7b;
+        margin-bottom: 0.75rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
     .chat-response {
         background: #f7fafc;
         padding: 1rem;
@@ -247,35 +260,6 @@ const HOME_STYLES = `
         overflow-y: auto;
     }
 
-    .chatbot-message {
-        background: white;
-        padding: 1rem;
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        margin-bottom: 1rem;
-    }
-
-    .message-content {
-        font-size: 1rem;
-        line-height: 1.5;
-        color: #333;
-        white-space: pre-wrap;
-    }
-
-    .order-history {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        margin-top: 1rem;
-    }
-
-    .order-history h5 {
-        color: #333;
-        margin-bottom: 0.75rem;
-        font-size: 1rem;
-        font-weight: 600;
-    }
 
     .orders-list {
         display: flex;
@@ -437,7 +421,7 @@ const HOME_SCRIPTS = `
         selectUser(null);
     }
 
-    function selectUser(user) {
+    async function selectUser(user) {
         currentUser = user;
         
         // Update button states
@@ -454,11 +438,63 @@ const HOME_SCRIPTS = `
         // Update current user info
         const userInfo = document.getElementById('current-user-info');
         if (user) {
-            userInfo.innerHTML = \`
+            let userInfoContent = \`
                 <h4>👤 Přihlášený jako:</h4>
                 <strong>\${user.name}</strong><br>
                 <small>\${user.email} | \${user.phone}</small>
             \`;
+
+            // Load and display user's orders
+            try {
+                const ordersResponse = await fetch(API_BASE + '/orders', {
+                    headers: {
+                        'Authorization': \`Bearer fake_session_for_\${user.email}\`
+                    }
+                });
+
+                if (ordersResponse.ok) {
+                    const ordersData = await ordersResponse.json();
+                    if (ordersData.success && ordersData.data && ordersData.data.length > 0) {
+                        userInfoContent += \`
+                            <div class="user-orders">
+                                <h5>📋 Vaše objednávky:</h5>
+                                <div class="orders-list">
+                        \`;
+                        
+                        ordersData.data.slice(0, 5).forEach(order => {
+                            const statusEmoji = {
+                                'pending': '⏳',
+                                'processing': '🔄',
+                                'shipped': '🚚',
+                                'delivered': '✅',
+                                'cancelled': '❌'
+                            };
+                            
+                            userInfoContent += \`
+                                <div class="order-item">
+                                    <div class="order-header">
+                                        <strong>\${order.order_number}</strong>
+                                        <span class="order-status">\${statusEmoji[order.status] || '📋'} \${order.status}</span>
+                                    </div>
+                                    <div class="order-details">
+                                        <span class="order-total">\${order.total} Kč</span>
+                                        <span class="order-date">\${new Date(order.created_at).toLocaleDateString('cs-CZ')}</span>
+                                    </div>
+                                </div>
+                            \`;
+                        });
+                        
+                        userInfoContent += \`
+                                </div>
+                            </div>
+                        \`;
+                    }
+                }
+            } catch (orderError) {
+                console.error('Error loading orders:', orderError);
+            }
+
+            userInfo.innerHTML = userInfoContent;
             userInfo.style.display = 'block';
         } else {
             userInfo.innerHTML = \`
@@ -506,82 +542,22 @@ const HOME_SCRIPTS = `
             const data = await response.json();
             
             if (data.success) {
-                // Format chatbot response properly
-                let responseContent = '';
-                const botResponse = data.data.bot_response;
-                
                 // Extract the actual message from various possible response formats
+                const botResponse = data.data.bot_response;
                 let chatbotMessage = '';
+                
                 if (typeof botResponse === 'string') {
                     chatbotMessage = botResponse;
                 } else if (botResponse && typeof botResponse === 'object') {
-                    chatbotMessage = botResponse.output || botResponse.message || botResponse.response || botResponse.text || botResponse.content || JSON.stringify(botResponse);
+                    chatbotMessage = botResponse.output || botResponse.message || botResponse.response || botResponse.text || botResponse.content || JSON.stringify(botResponse, null, 2);
                 } else {
                     chatbotMessage = 'Odpověď nebyla rozpoznána';
                 }
 
-                responseContent = \`
-                    <div class="chatbot-message">
-                        <div class="message-content">\${chatbotMessage}</div>
-                    </div>
-                \`;
-
-                // Add order history for logged-in users
-                if (currentUser) {
-                    try {
-                        const ordersResponse = await fetch(API_BASE + '/orders', {
-                            headers: {
-                                'Authorization': \`Bearer fake_session_for_\${currentUser.email}\`
-                            }
-                        });
-
-                        if (ordersResponse.ok) {
-                            const ordersData = await ordersResponse.json();
-                            if (ordersData.success && ordersData.data && ordersData.data.length > 0) {
-                                responseContent += \`
-                                    <div class="order-history">
-                                        <h5>📋 Vaše objednávky:</h5>
-                                        <div class="orders-list">
-                                \`;
-                                
-                                ordersData.data.slice(0, 5).forEach(order => {
-                                    const statusEmoji = {
-                                        'pending': '⏳',
-                                        'processing': '🔄',
-                                        'shipped': '🚚',
-                                        'delivered': '✅',
-                                        'cancelled': '❌'
-                                    };
-                                    
-                                    responseContent += \`
-                                        <div class="order-item">
-                                            <div class="order-header">
-                                                <strong>\${order.order_number}</strong>
-                                                <span class="order-status">\${statusEmoji[order.status] || '📋'} \${order.status}</span>
-                                            </div>
-                                            <div class="order-details">
-                                                <span class="order-total">\${order.total} Kč</span>
-                                                <span class="order-date">\${new Date(order.created_at).toLocaleDateString('cs-CZ')}</span>
-                                            </div>
-                                        </div>
-                                    \`;
-                                });
-                                
-                                responseContent += \`
-                                        </div>
-                                    </div>
-                                \`;
-                            }
-                        }
-                    } catch (orderError) {
-                        console.error('Error loading orders:', orderError);
-                    }
-                }
-
-                // Show formatted response
+                // Show response in original format
                 responseDiv.innerHTML = \`
                     <h4>🤖 Odpověď chatbota:</h4>
-                    \${responseContent}
+                    <div class="response-content">\${chatbotMessage}</div>
                 \`;
                 responseDiv.style.display = 'block';
                 messageInput.value = '';
