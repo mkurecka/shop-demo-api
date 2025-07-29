@@ -234,30 +234,64 @@ const HOME_STYLES = `
         font-weight: 600;
     }
 
-    .chat-response {
-        background: #f7fafc;
-        padding: 1rem;
-        border-radius: 8px;
-        margin-top: 1rem;
-        border-left: 4px solid #4299e1;
-    }
-
-    .chat-response h4 {
-        color: #2c5282;
-        margin-bottom: 0.5rem;
-        font-size: 0.9rem;
-    }
-
-    .response-content {
-        background: white;
-        padding: 0.75rem;
-        border-radius: 4px;
+    .chat-history {
+        background: #f8f9fa;
         border: 1px solid #e2e8f0;
-        font-family: monospace;
-        font-size: 0.8rem;
-        white-space: pre-wrap;
-        max-height: 200px;
+        border-radius: 12px;
+        height: 300px;
         overflow-y: auto;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .message {
+        max-width: 70%;
+        word-wrap: break-word;
+    }
+
+    .message.user {
+        align-self: flex-end;
+    }
+
+    .message.bot {
+        align-self: flex-start;
+    }
+
+    .message-bubble {
+        padding: 0.75rem 1rem;
+        border-radius: 18px;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+
+    .message.user .message-bubble {
+        background: #667eea;
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .message.bot .message-bubble {
+        background: #e2e8f0;
+        color: #333;
+        border-bottom-left-radius: 4px;
+    }
+
+    .message-time {
+        font-size: 0.7rem;
+        color: #888;
+        margin-top: 0.25rem;
+        text-align: right;
+    }
+
+    .message.bot .message-time {
+        text-align: left;
+    }
+
+    .chat-response {
+        display: none;
     }
 
 
@@ -392,10 +426,10 @@ const HOME_SCRIPTS = `
 
     const users = [
         { email: 'jan.novak@email.cz', name: 'Jan Novák', phone: '+420776123456' },
-        { email: 'marie.svoboda@email.cz', name: 'Marie Svoboda', phone: '+420605987654' },
+        { email: 'marie.svoboda@email.cz', name: 'Marie Svobodová', phone: '+420605987654' },
         { email: 'petr.dvorak@email.cz', name: 'Petr Dvořák', phone: '+420724567890' },
-        { email: 'anna.novotna@email.cz', name: 'Anna Novotná', phone: '+420777456123' },
-        { email: 'pavel.krejci@email.cz', name: 'Pavel Krejčí', phone: '+420608789456' }
+        { email: 'anna.novotna@email.cz', name: 'Anna Novotná', phone: '+420603456789' },
+        { email: 'tomas.prochazka@email.cz', name: 'Tomáš Procházka', phone: '+420777333444' }
     ];
 
     function initializeChatWidget() {
@@ -508,13 +542,17 @@ const HOME_SCRIPTS = `
     async function sendChatMessage() {
         const messageInput = document.getElementById('chat-message');
         const sendBtn = document.getElementById('chat-send-btn');
-        const responseDiv = document.getElementById('chat-response');
+        const chatHistory = document.getElementById('chat-history');
         const customWebhookUrl = document.getElementById('webhook-url').value;
         
         const message = messageInput.value.trim();
         if (!message) return;
 
-        // Disable input and button
+        // Add user message to chat
+        addMessageToChat('user', message);
+
+        // Clear input and disable
+        messageInput.value = '';
         messageInput.disabled = true;
         sendBtn.disabled = true;
         sendBtn.textContent = 'Odesílám...';
@@ -554,19 +592,14 @@ const HOME_SCRIPTS = `
                     chatbotMessage = 'Odpověď nebyla rozpoznána';
                 }
 
-                // Show response in original format
-                responseDiv.innerHTML = \`
-                    <h4>🤖 Odpověď chatbota:</h4>
-                    <div class="response-content">\${chatbotMessage}</div>
-                \`;
-                responseDiv.style.display = 'block';
-                messageInput.value = '';
+                // Add bot response to chat
+                addMessageToChat('bot', chatbotMessage);
             } else {
-                showError('Chyba: ' + data.error.message);
+                addMessageToChat('bot', 'Chyba: ' + data.error.message);
             }
         } catch (error) {
             console.error('Chat error:', error);
-            showError('Chyba při odesílání zprávy');
+            addMessageToChat('bot', 'Chyba při odesílání zprávy');
         } finally {
             // Re-enable input and button
             messageInput.disabled = false;
@@ -575,8 +608,25 @@ const HOME_SCRIPTS = `
         }
     }
 
-    function clearChatResponse() {
-        document.getElementById('chat-response').style.display = 'none';
+    function addMessageToChat(type, text) {
+        const chatHistory = document.getElementById('chat-history');
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = \`message \${type}\`;
+        
+        messageDiv.innerHTML = \`
+            <div class="message-bubble">\${text}</div>
+            <div class="message-time">\${timeString}</div>
+        \`;
+        
+        chatHistory.appendChild(messageDiv);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    function clearChatHistory() {
+        document.getElementById('chat-history').innerHTML = '';
     }
 
     // Handle Enter key in chat input
@@ -687,19 +737,23 @@ const HOME_CONTENT = `
                 <!-- User info will be updated by JavaScript -->
             </div>
 
+            <div id="chat-history" class="chat-history">
+                <!-- Chat messages will appear here -->
+            </div>
+
             <div class="chat-input-group">
                 <input type="text" id="chat-message" class="chat-input" placeholder="Napište svou zprávu..." maxlength="500">
                 <button id="chat-send-btn" class="chat-send-btn" onclick="sendChatMessage()">💬 Odeslat</button>
             </div>
 
             <div style="text-align: center; margin-bottom: 1rem;">
-                <button onclick="clearChatResponse()" class="btn btn-secondary" style="margin: 0;">
-                    🗑️ Vymazat odpověď
+                <button onclick="clearChatHistory()" class="btn btn-secondary" style="margin: 0;">
+                    🗑️ Vymazat historii
                 </button>
             </div>
 
             <div id="chat-response" class="chat-response" style="display: none;">
-                <!-- Response will be shown here -->
+                <!-- Hidden - now using chat history -->
             </div>
         </div>
     </div>
